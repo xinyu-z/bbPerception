@@ -1,0 +1,719 @@
+---
+title: "ICPhS analysis"
+author: "Xinyu Zhang"
+date: '2023-01-21'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Preprocessing: 
+writing a function to code in phoneme contrast according to word pair, steps on continuum according to audio file name, response vowel according to left/right button 
+```{r, include = FALSE}
+library(dplyr)
+process <- function(file) {
+  subject <- read.csv(file, header = TRUE, sep = ",") %>% 
+    select(subject_nr, count_perceptionPretestResponse, count_perceptionPostTestResponse, percepPretestAudio, percepPretestA, percepPretestB, perceptionPostTestAudio, perceptionPostTestOptionA, perceptionPostTestOptionB, response_perceptionPretestResponse, response_perceptionPostTestResponse, title)
+  
+  percepPre <- subject %>%
+    mutate(audio = percepPretestAudio) %>%
+    select(count_perceptionPretestResponse, percepPretestA, percepPretestB,response_perceptionPretestResponse, subject_nr, audio, title) %>% 
+    slice(c(64:147),)
+    
+  percepPre <- percepPre %>% 
+    mutate(prepost = c(rep ("pre", nrow(percepPre))))
+  
+  percepPost <- subject %>%
+    mutate(audio = perceptionPostTestAudio) %>%
+    select(count_perceptionPostTestResponse, perceptionPostTestOptionA, perceptionPostTestOptionB, response_perceptionPostTestResponse, subject_nr, audio, title) %>% 
+    slice(c(202:285),)
+  
+  percepPost <- percepPost %>% 
+    mutate(prepost = c(rep ("post", nrow(percepPost))))
+
+
+binded <- bind_rows(percepPre, percepPost)
+
+binded$subject_nr <- as.character(binded$subject_nr)
+
+processed<- binded %>% 
+  mutate(
+    contrast = case_when(
+      audio == "sik-sec1.wav" ~ "IE",
+      audio == "sik-sec2.wav" ~ "IE",
+      audio == "sik-sec3.wav" ~ "IE",
+      audio == "sik-sec4.wav" ~ "IE",
+      audio == "sik-sec5.wav" ~ "IE",
+      audio == "sik-sec6.wav" ~ "IE",
+      audio == "sik-sec7.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_1_stereo.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_2_stereo.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_3_stereo.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_4_stereo.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_5_stereo.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_6_stereo.wav" ~ "IE",
+      audio == "pip-pep_continuumStep_7_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_1_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_2_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_3_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_4_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_5_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_6_stereo.wav" ~ "IE",
+      audio == "kik-kek_continuumStep_7_stereo.wav" ~ "IE",
+      TRUE ~ "filler"),
+      stepOnCon = case_when(
+      audio == "sik-sec1.wav" ~ "1",
+      audio == "sik-sec2.wav" ~ "2",
+      audio == "sik-sec3.wav" ~ "3",
+      audio == "sik-sec4.wav" ~ "4",
+      audio == "sik-sec5.wav" ~ "5",
+      audio == "sik-sec6.wav" ~ "6",
+      audio == "sik-sec7.wav" ~ "7",
+      audio == "pip-pep_continuumStep_1_stereo.wav" ~ "1",
+      audio == "pip-pep_continuumStep_2_stereo.wav" ~ "2",
+      audio == "pip-pep_continuumStep_3_stereo.wav" ~ "3",
+      audio == "pip-pep_continuumStep_4_stereo.wav" ~ "4",
+      audio == "pip-pep_continuumStep_5_stereo.wav" ~ "5",
+      audio == "pip-pep_continuumStep_6_stereo.wav" ~ "6",
+      audio == "pip-pep_continuumStep_7_stereo.wav" ~ "7",
+      audio == "kik-kek_continuumStep_1_stereo.wav" ~ "1",
+      audio == "kik-kek_continuumStep_2_stereo.wav" ~ "2",
+      audio == "kik-kek_continuumStep_3_stereo.wav" ~ "3",
+      audio == "kik-kek_continuumStep_4_stereo.wav" ~ "4",
+      audio == "kik-kek_continuumStep_5_stereo.wav" ~ "5",
+      audio == "kik-kek_continuumStep_6_stereo.wav" ~ "6",
+      audio == "kik-kek_continuumStep_7_stereo.wav" ~ "7",
+      TRUE ~ "filler"),
+      BB = case_when(
+        title == "BB-MN-AF" ~ "BB",
+        title == "BB-AF-MN" ~ "BB",
+        TRUE ~ "NB"
+        ),
+      AF = case_when(
+        title == "NB-AF-MN" ~ "AF",
+        title == "BB-AF-MN" ~ "AF",
+        TRUE ~ "MN"
+      )
+  ) %>% 
+  filter(contrast == "IE") %>% 
+  mutate(
+    responseV = case_when(
+      percepPretestA == "sik"&response_perceptionPretestResponse == "A" ~ "I",
+      percepPretestB == "sec"&response_perceptionPretestResponse == "E" ~ "E",
+      percepPretestA == "pip"&response_perceptionPretestResponse == "A" ~ "I",
+      percepPretestB == "pep"&response_perceptionPretestResponse == "E" ~ "E",
+      percepPretestA == "kek"&response_perceptionPretestResponse == "A" ~ "E",
+      percepPretestB == "kik"&response_perceptionPretestResponse == "E" ~ "I", #previous mistake here
+      perceptionPostTestOptionA == "sik"&response_perceptionPostTestResponse == "A" ~ "I",
+      perceptionPostTestOptionB == "sec"&response_perceptionPostTestResponse == "E" ~ "E",
+      perceptionPostTestOptionA == "pip"&response_perceptionPostTestResponse == "A" ~ "I",
+      perceptionPostTestOptionB == "pep"&response_perceptionPostTestResponse == "E" ~ "E",
+      perceptionPostTestOptionA == "kek"&response_perceptionPostTestResponse == "A" ~ "E",
+      perceptionPostTestOptionB == "kik"&response_perceptionPostTestResponse == "E" ~ "I"  #previous mistake here
+      ),
+      count = case_when(
+        prepost == "pre" ~ count_perceptionPretestResponse,
+        prepost == "post" ~ count_perceptionPostTestResponse
+      ),
+      pair = case_when(percepPretestA == "sik"~ "sik-sec",
+                       percepPretestA == "pip" ~ "pip-pep",
+                       percepPretestA == "kek" ~ "kik-kek",
+                       perceptionPostTestOptionA == "sik" ~ "sik-sec",
+                       perceptionPostTestOptionA == "pip" ~ "pip-pep",
+                       perceptionPostTestOptionA == "kek" ~ "kik-kek",
+        
+      )
+  )
+}
+```
+
+run the function on data from subject 1 (which creates a "starting table" with all the correct columns for the rest of the new data to concatenate to)
+```{r, include = FALSE}
+bigtable <- process("subject-1.csv")
+```
+
+run the function on data from subjects 2 to 60, concatenate into a full table
+```{r, include = FALSE}
+for (n in c(2:60)){
+  name <- paste("subject-",n,".csv", sep = '')
+  processed<- process(name)
+  processed_n <- processed
+  subject_n <- processed_n
+  bigtable <- bind_rows(bigtable, subject_n)
+}
+
+nrow(bigtable)
+#write.csv(bigtable, file = "combined2.csv")
+```
+
+read in full table
+```{r, include = FALSE}
+library(lme4)
+library(minqa)
+bigtable<- read.csv("combined2.csv", sep = ",", header = TRUE)
+
+#steps as numeric variable:
+bigtable$stepOnCon <- as.numeric(bigtable$stepOnCon)
+```
+
+plotting raw data:
+```{r, include = FALSE}
+library(dplyr)
+#count number of stimuli per step
+bigtable %>% 
+  count(stepOnCon, responseV) #360
+
+#count for number of stimuli in BB group per step 
+bigtable %>%  filter(BB == "BB") %>% 
+  count(stepOnCon, responseV) #186
+
+#count for number of stimuli in NB group per step 
+bigtable %>%  filter(BB == "NB") %>% 
+  count(stepOnCon, responseV) #174
+
+#count for number of stimuli in pretest in BB group per step
+bigtable %>%  filter(BB == "BB", prepost == "pre") %>% 
+  count(stepOnCon, responseV) #93
+
+#count for number of stimuli in posttest in BB group per step
+bigtable %>%  filter(BB == "BB", prepost == "post") %>% 
+  count(stepOnCon, responseV) #93
+
+#count for number of stimuli in pretest in NB group per step
+bigtable %>%  filter(BB == "NB", prepost == "pre") %>% 
+  count(stepOnCon, responseV) #87
+
+#count for number of stimuli in posttest in NB group per step
+bigtable %>%  filter(BB == "NB", prepost == "post") %>% 
+  count(stepOnCon, responseV) #87
+
+#count for numner of stimuli in pretest in AF group per step
+bigtable %>%  filter(AF == "AF", prepost == "pre") %>% 
+  count(stepOnCon, responseV) #90
+#count for number of stimuli in posttest in AF group per step
+bigtable %>%  filter(AF == "AF", prepost == "post") %>% 
+  count(stepOnCon, responseV) #90
+#count for number of stimuli in pretest in MN group per step
+bigtable %>%  filter(AF == "MN", prepost == "pre") %>% 
+  count(stepOnCon, responseV)#90
+#count for number of stimuli in posttest in MN group per step
+bigtable %>%  filter(AF == "MN", prepost == "post") %>% 
+  count(stepOnCon, responseV)
+
+#actual percentage of E responses
+bbprepost <- bigtable %>%
+  filter(responseV == "E") %>% 
+  dplyr::count(stepOnCon, responseV, BB, prepost)%>% 
+  mutate(
+    proportionE = case_when(
+      BB == "NB" ~ n/87,
+      BB == "BB" ~ n/93)
+  )
+
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(bbprepost,aes( x=stepOnCon, y=proportionE,color=BB,lty=prepost)) + geom_point( aes(shape = prepost), size = 2) + geom_line() + theme_bw() + scale_color_manual(values = c("#440154FF", "#22A884FF"))
+#+ scale_color_grey()
+#+ 
+#+ icphs colors: values = c("#440154FF", "#22A884FF")
+#+ radboud colors: values = c("#ff424b", "#730e04")
+
+#ggsave(file="prepostBB.png")
+
+
+ggplot(bbprepost,aes( x=stepOnCon, y=proportionE,color=BB,lty=prepost, shape = prepost)) + geom_point() + stat_smooth(method="glm", se=FALSE,
+                method.args = list(family=binomial)) + theme_bw() + scale_color_viridis_d()
+```
+
+
+```{r}
+bbstep <- bigtable %>%
+  filter(responseV == "E") %>% 
+  dplyr::count(stepOnCon, responseV, BB)%>% 
+  mutate(
+    proportionE = case_when(
+      BB == "NB" ~ n/87,
+      BB == "BB" ~ n/93)
+  )
+
+library(ggplot2)
+ggplot(bbstep,aes( x=stepOnCon, y=proportionE,color=BB)) + geom_point() + geom_line() + theme_bw()+scale_color_manual(values=c("#FDE725FF", "#440154FF"))
+
+#ggsave(file="stepBB.png")
+```
+
+
+
+bar plot:
+```{r}
+library(dplyr)
+library(ggplot2)
+library(viridis)
+#filtering for step4
+bbprepost4 <- bigtable %>%
+  filter(responseV == "E", stepOnCon == 4) %>% 
+  dplyr::count(stepOnCon, responseV, BB, prepost) %>% 
+  mutate(percentE = case_when(
+      BB == "BB" ~ n/93,
+      BB == "NB" ~ n/87))
+
+bbprepost4
+
+#bbprepost4 <-bbprepost %>% mutate(percentE = n/90)
+
+bbprepost4$BB <- factor(bbprepost4$BB,
+                          levels = c("NB", "BB"))
+bbprepost4$prepost <- factor(bbprepost4$prepost,
+                          levels = c("pre", "post"))
+
+plot <- ggplot(bbprepost4, aes(x= prepost, y= percentE, fill = BB)) +
+  geom_bar(stat="identity", position = "dodge")+
+  scale_y_continuous(labels=scales::percent, limits = c(0, 1))+
+  labs (y = "percentage of /ɛ/ responses", x = "*at continuum step 4") + theme_classic()
+
+#plot + scale_fill_viridis_d()
+plot + scale_fill_manual(values=c("#ff424b", "#730e04"))
+#radboud colors: col = c("#ff424b", "#730e04")
+#ggsave("barchart_step4Corrected.png")
+```
+
+#### bar plot for auditory feedback
+```{r}
+afprepost4 <- bigtable %>%
+  filter(responseV == "E", stepOnCon == 4) %>% 
+  dplyr::count(stepOnCon, responseV, AF, prepost) %>% 
+  mutate(percentE = case_when(
+      AF == "AF" ~ n/90,
+      AF == "MN" ~ n/90))
+
+afprepost4$AF <- factor(afprepost4$AF,
+                          levels = c("AF", "MN"))
+afprepost4$prepost <- factor(afprepost4$prepost,
+                          levels = c("pre", "post"))
+
+plot <- ggplot(afprepost4, aes(x= prepost, y= percentE, fill = AF)) +
+  geom_bar(stat="identity", position = "dodge")+
+  scale_y_continuous(labels=scales::percent, limits = c(0, 1))+
+  labs (y = "percentage of /ɛ/ responses", x = "*at continuum step 4") + theme_classic()
+
+#plot + scale_fill_viridis_d()
+plot + scale_fill_manual(values=c("#ff424b", "#730e04"))
+#radboud colors: col = c("#ff424b", "#730e04")
+#ggsave("MNbarchart_step4.png")
+```
+
+
+#### model selection by ANOVA
+
+####code contrasts for responses as 0 vs 1
+```{r}
+library(dplyr)
+bigtable<- bigtable %>% 
+  mutate(
+    responseE = case_when(
+      responseV == "I" ~ 0,
+      responseV == "E" ~ 1)
+  )
+bigtable$responseE <- as.factor(bigtable$responseE)
+```
+
+
+#### coding in the treatment contrast levels
+```{r}
+#NB, AF, and pretest as reference levels
+bigtable$BB <- as.factor(bigtable$BB)
+bigtable$BB <- relevel(bigtable$BB, ref = "NB")
+
+bigtable$AF <- as.factor(bigtable$AF)
+bigtable$AF <- relevel(bigtable$AF, ref = "AF")
+
+bigtable$prepost <- as.factor(bigtable$prepost)
+bigtable$prepost <- relevel(bigtable$prepost, ref = "pre")
+
+#Centering the StepOnCon variable
+bigtable$cstep <- bigtable$stepOnCon - 4
+
+
+```
+
+#### starting with the four-way interaction model
+```{r}
+library(lme4)
+model1 <- glmer(responseE~ cstep * prepost * AF * BB + (1|subject_nr) + (1|pair),data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+summary(model1)
+```
+
+removing the least significant interaction (cstep:prepost:AF:BB), which leaves out all four-way interactions. Hence adding up all possible three-way interactions.
+
+all possible combinations:
+```{r}
+combn(c("cstep", "prepost", "AF", "BB"), 3)
+```
+
+adding them up
+```{r}
+model2 <- glmer(responseE~ cstep *prepost * AF +cstep *prepost * BB + cstep *AF * BB+ prepost *AF * BB + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+```
+
+compare model1 and model2
+```{r}
+anova(model1, model2, REML = FALSE)
+```
+
+not significantly different. Now check the output of model1 to take out the least sig. effect
+
+```{r}
+summary(model2)
+```
+
+the most insignificant one is prepost:AF, but starting from the higher order ones first and take out the most insignificant 3-way interaction (cstep:prepost:BB), and compare the model with the previous one
+
+```{r}
+model3 <- glmer(responseE~ cstep *prepost * AF + cstep *AF * BB+ prepost *AF * BB + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+anova (model2, model3, REML = FALSE)
+```
+
+not significant. Now check the output of the new model to take out the least sig. 3-way interaction
+
+```{r}
+summary(model3)
+```
+
+most insig. 3-way is prepost:AF:BB, But adding back some of the two-way interactions that will be removed due to the removal of this three-way. Compare new model with the previous one
+
+```{r}
+model4 <- glmer(responseE~ cstep *prepost * AF + cstep *AF * BB+ prepost * BB + AF * BB + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+anova (model3, model4, REML = FALSE)
+```
+
+not significant, and both AIC and BIC decreased, thus adopting the new model.
+Check model summary to remove the least significant 3-way
+```{r, include = FALSE}
+summary(model4)
+```
+
+removing cstep:prepost:AF, model becomes $responseE$ ~ $cstep *AF * BB+ (1|subject_nr) + (1|pair)$. But *prepost* is now completely removed but there were important two way interactions involving prepost. So also adding in the two-ways that appeared in the previous models.
+and compare the new model with the previous one
+```{r, include = FALSE}
+model5 <- glmer(responseE~ cstep *BB * AF+ BB*prepost + AF * BB + cstep * prepost + prepost * AF + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+anova (model4, model5, REML = FALSE)
+```
+
+not significant(but almost, and AIC and BIC don't vary much between the two models) . Print out model summary for model5 to remove the least significant interaction:
+```{r}
+summary(model5)
+```
+The least significant effect now is cstep:prepost, but there are higher order contrasts (cstep:AF:BB) that are significant and shouldn't be removed. 
+
+Try removing cstep:prepost:
+```{r}
+model6 <- glmer(responseE~ cstep *AF * BB+ prepost * BB + AF * BB + prepost * AF + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+
+anova (model5, model6, REML = FALSE)
+```
+
+Model6 is different from Model5. Selecting model 5.
+
+plotting model residuals
+```{r}
+plot(density(resid(model5)),main='Distribution of residuals')
+
+qqnorm(resid(model5)); qqline(resid(model5))
+```
+
+#### Interpretation
+
+significant effects: cstep, BB, cstep:BB, BB:prepost, cstep:AF:BB
+
+cstep 1.95298: at pretest, in the NB x AF group, as cstep increases by 1, the odds of an E response changes by exp(1.95298) = `r exp(1.95298)`.
+
+BB -1.59338: at pretest, under AF condition, on step 4 (when cstep = 0, the intercept), the odds of an E response changes in the BB group by exp(-1.59338) = `r exp(-1.59338)`, as compared to the NB group.
+
+cstep:BBBB -0.65283: at pretest, under AF condition, when cstep increase by 1, in the BB group, the odds of an E response changes by exp(-0.65283) = `r exp(-0.65283)`.
+
+
+BBBB:prepostpost 0.60986: on step 4 (when cetep = 0, the intercept), under AF condition, in the BB group, the odds of an E response changes in the posttest by exp(0.60986) = `r exp(0.60986)`
+
+cstep:AFMN:BBBB 0.73318: at pretest, in the MN x BB group, when step increase by 1, the odds of an E response changes by exp(0.73318) = `r exp(0.73318)`.
+
+```{r,, include = FALSE}
+logit2prob <- function(logit){
+  odds <- exp(logit)
+  prob <- odds / (1 + odds)
+  return(prob)
+}
+logit2prob(0.73318)
+```
+
+
+
+using the Effects package to list out the probability of an E response as cstep increases:
+```{r}
+library(effects)
+effect('cstep', model5)
+```
+In NB group, at pretest, the probability of E responses increases as cstep increases
+
+Same for the effects of BB, cstep:BB, BB:prepost, cstep:AF:BB:
+```{r}
+effect('BB', model5)
+effect('cstep:BB', model5)
+effect('BB:prepost', model5)
+ef<-effect('cstep:BB:AF', model5)
+```
+
+plotting the effects as probabilities:
+```{r}
+effectsTheme(col = "colorblind")
+plot(effect('BB', model5), multiline = TRUE)
+
+plot(effect('cstep', model5), multiline = TRUE)
+
+plot(effect('cstep:BB', model5), multiline = TRUE)
+
+plot(effect('BB:prepost', model5), multiline = TRUE)
+
+lattice::trellis.par.set(effectsTheme(col = c("#ff424b", "#730e04")))
+plot(effect('cstep:BB:AF', model5),multiline = TRUE, main=paste(""), axes=list(y=list(lab={"responseE (logit)"})))
+
+#radboud colors: col = c("#ff424b", "#730e04")
+#icphs colors: col = c("#440154FF", "#22A884FF")
+
+```
+
+plotting BB and prepost, reversing the x-axis and factor labels
+
+```{r}
+reverse <- effect('BB:prepost', model5)
+write.csv(reverse, "reverse.csv", row.names=FALSE, quote=FALSE) 
+```
+
+```{r}
+library(ggplot2)
+ggplot(as.data.frame(reverse), aes(x= prepost, y= fit, color = BB, group = BB)) +
+  geom_point()+ geom_line()+theme_classic() + ylab("responseE (logit)")
+```
+
+plotting BB and step, reversing the x-axis and factor labels
+
+
+
+
+plotting model on top of data:
+
+```{r}
+library(ggplot2)
+
+#re-summarizing data
+bbstep <- bigtable %>%
+  filter(responseV == "E") %>% 
+  dplyr::count(stepOnCon, responseV, BB)%>% 
+  mutate(
+    proportionE = case_when(
+      BB == "BB" ~ n/(93*2),
+      BB == "NB" ~ n/(87*2))
+  )
+
+
+
+raw<- ggplot()+ 
+  geom_point(data=bbstep, aes(x = stepOnCon, y = proportionE, color = BB)) +
+  geom_line(data=bbstep, aes(x = stepOnCon, y = proportionE, color=BB))
+
+model_plot <- effect("cstep:BB", model5)
+model_plot <-as.data.frame(model_plot) #saving it as a data frame
+model_plot$step <- model_plot$cstep + 4 #uncentering step to match the x-scale on the raw data plot
+
+
+raw + 
+  #geom_ribbon(data = model_plot, aes(x= step, ymin = lower, ymax = upper, fill = BB), alpha = 0.15)+ scale_color_viridis_d()+ #ribbon = error bar, 
+  #geom_point(data=model_plot,aes(x = step, y = fit, color = BB), alpha = 1)+
+  geom_line(data=model_plot,aes(x = step, y = fit, color = BB),linetype = "dotdash", lwd=0.6, alpha = 1)+
+  scale_x_continuous("Continuum step")+
+  scale_y_continuous("E response")+theme_bw() + scale_color_viridis_d()+
+  ggtitle("model in solid line, data in dotdash")
+  
+#ggsave(file = "dataAndModel.png")
+
+```
+
+model plot:
+
+```{r}
+ggplot()+
+  geom_line(data=model_plot,aes(x = step, y = fit, color = BB), lwd=0.6, alpha = 1)+
+  scale_x_continuous("Continuum step")+
+  scale_y_continuous("E response")+theme_bw() + scale_color_viridis_d()
+#ggsave(file = "modelPlot.png")
+```
+
+
+
+
+Relevel so that the BB group is the reference level, to check whether the BB group differ between pre- and post-test
+```{r}
+#BB, AF, and pretest as reference levels
+bigtable$BB <- as.factor(bigtable$BB)
+bigtable$BB <- relevel(bigtable$BB, ref = "BB")
+
+bigtable$AF <- as.factor(bigtable$AF)
+bigtable$AF <- relevel(bigtable$AF, ref = "AF")
+
+bigtable$prepost <- as.factor(bigtable$prepost)
+bigtable$prepost <- relevel(bigtable$prepost, ref = "pre")
+
+#Centering the StepOnCon variable
+bigtable$cstep <- bigtable$stepOnCon - 4
+
+```
+
+Rerun the same final model:
+```{r}
+library(lme4)
+model5 <- glmer(responseE~ cstep *BB * AF+ BB *prepost + AF * BB + cstep * prepost + prepost * AF + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+summary(model5)
+```
+Cannot conclude that BB group differ in their behavior between pretest and posttest.
+
+plotting effects:
+```{r}
+library(effects)
+effect('cstep', model5)
+effect('BB', model5)
+effect('cstep:BB', model5)
+effect('BB*prepost', model5)
+effect('cstep:BB:AF', model5)
+effectsTheme(col = "colorblind")
+plot(effect('BB', model5), multiline = TRUE)
+
+plot(effect('cstep', model5), multiline = TRUE)
+plot(effect('prepost', model5), multiline = TRUE)
+
+plot(effect('cstep:AF', model5), multiline = TRUE)
+
+plot(effect('BB:prepost', model5), multiline = TRUE)
+
+plot(effect('cstep:BB:AF', model5), multiline = TRUE)
+
+```
+
+
+Relevel so that posttest is reference level, to check whether at posttest BB and NB group differ:
+
+```{r}
+#NB, AF, and posttest as reference levels
+bigtable$BB <- as.factor(bigtable$BB)
+bigtable$BB <- relevel(bigtable$BB, ref = "NB")
+
+bigtable$AF <- as.factor(bigtable$AF)
+bigtable$AF <- relevel(bigtable$AF, ref = "AF")
+
+bigtable$prepost <- as.factor(bigtable$prepost)
+bigtable$prepost <- relevel(bigtable$prepost, ref = "post")
+
+#Centering the StepOnCon variable
+bigtable$cstep <- bigtable$stepOnCon - 4
+
+```
+
+Rerun the same final model:
+```{r}
+model5 <- glmer(responseE~ cstep *BB * AF+ prepost * BB + AF * BB + cstep * prepost + prepost * AF + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+summary(model5)
+plot(effect('cstep:BB:AF', model5), multiline = TRUE)
+```
+
+AF and BB are both somewhat significant. 
+
+Interpretation:
+
+AFMN  -1.11464: Under NB condition, at posttest, the odds of MN group giving an E response differ by exp(-1.11464) = `r exp(-1.11464)` compared to the AF group.
+
+BBBB -0.98353: at posttest, on step 4, in the AF condition, the odds of an E response in the BB group differ by exp(-0.98353) = `r exp(-0.98353)`.
+
+cstep:BBBB -0.65283: at posttest, under AF condition, the odds of an E response in the BB group changes by exp(-0.65283) = `r exp(-0.65283)` as cstep increases by 1.
+
+The values in BBBB:prepostpost and cstep:AFMN:BBBB are the same when pretest, NB, AF were the reference levels.
+
+
+```{r, include = FALSE}
+model6 <- glmer(responseE~ prepost * BB + AF * BB + cstep * prepost + prepost * AF + cstep * AF + cstep *BB + (1|subject_nr) + (1|pair), data = bigtable, family=binomial(link="logit"),
+            control=glmerControl(optimizer="bobyqa"))
+
+anova (model5, model6, REML = FALSE)
+```
+
+```{r, include = FALSE}
+bigtable %>% filter(BB == 'BB', prepost == "post") %>% 
+  group_by(subject_nr) %>% 
+  summarize()
+```
+
+
+```{r}
+library(ggplot2)
+#boxplot for pre
+pre <- bbprepost %>% 
+  filter(prepost == "pre")
+
+p <- ggplot(data=pre,aes(x = stepOnCon, y = proportionE, group = stepOnCon, color = BB))+ 
+    scale_x_continuous("Continuum step")+
+    scale_y_continuous("E proportion")+
+    theme_classic()+ 
+    theme(text = element_text(size = 15), axis.text.x = element_text(size=10), legend.text = element_text(size = 15)) 
+
+p + geom_boxplot() + ggtitle("perception at pretest") 
+
+#boxplot for post
+post <- bbprepost %>% 
+  filter(prepost == "post")
+
+p <- ggplot(data=post,aes(x = stepOnCon, y = proportionE, group = stepOnCon, color = BB))+ 
+    scale_x_continuous("Continuum step")+
+    scale_y_continuous("E proportion")+
+    theme_classic()+ 
+    theme(text = element_text(size = 15), axis.text.x = element_text(size=10), legend.text = element_text(size = 15)) 
+
+p + geom_boxplot() + ggtitle("perception at posttest")
+
+#collapsed over all four conditions
+p <- ggplot(data=bbprepost,aes(x = stepOnCon, y = proportionE, group = stepOnCon, color = BB))+ 
+    scale_x_continuous("Continuum step")+
+    scale_y_continuous("E proportion")+
+    theme_classic()+ 
+    theme(text = element_text(size = 15), axis.text.x = element_text(size=10), legend.text = element_text(size = 15)) 
+
+p + geom_boxplot() + ggtitle("perception collapsed over pre- and posttest and all conditions")
+
+
+#tabbed <- bigtable %>% filter(BB == "BB", prepost == "pre", responseV == "E") %>% 
+  #group_by(subject_nr, stepOnCon, responseV) %>%
+  #ungroup()%>% 
+  #count(subject_nr, stepOnCon, responseV) #%>% 
+
+#head(tabbed)
+
+
+```
+
+
