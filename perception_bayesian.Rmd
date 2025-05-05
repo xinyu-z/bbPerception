@@ -3,17 +3,111 @@ title: "Bayesian analysis on perception data"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+Reading in data: 
 
 ```{r}
-plot(cars)
+perc <- read.csv("combined2.csv", sep = ",", header = TRUE)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+checking data types:
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+head(perc)
+summary(perc)
+```
+
+continuum step should be numeric
+
+subject number should be strings
+
+prepost should be factors
+
+pair should be factors
+
+responseV should be factors
+
+BB should be factors
+
+AF should be factors
+
+Adjusting accordingly:
+
+```{r}
+perc$stepOnCon <- as.numeric(perc$stepOnCon)
+
+perc$subject_nr <- as.character(perc$subject_nr)
+
+perc$prepost <- as.factor(perc$prepost)
+
+perc$pair <- as.factor(perc$pair)
+
+perc$responseV <- as.factor(perc$responseV)
+
+perc$BB <- as.factor(perc$BB)
+
+perc$AF <- as.factor(perc$AF)
+```
+
+
+```{r}
+library(dplyr)
+perc<- perc %>% 
+  mutate(
+    responseE = case_when(
+      responseV == "I" ~ 0,
+      responseV == "E" ~ 1)
+  )
+perc$responseE <- as.factor(perc$responseE)
+```
+
+
+#### coding in the treatment contrast levels
+```{r}
+#NB, AF, and pretest as reference levels
+perc$BB <- relevel(perc$BB, ref = "NB")
+
+perc$AF <- relevel(perc$AF, ref = "AF")
+
+perc$prepost <- relevel(perc$prepost, ref = "pre")
+
+#Centering the StepOnCon variable
+perc$cstep <- perc$stepOnCon - 4
+
+```
+
+# Basic multivariate
+
+```{r}
+library(brms)
+
+model1 <- responseE~ cstep * prepost * AF * BB + (1|subject_nr) + (1|pair)
+
+fit1 <- brm(model1, data = perc,family = bernoulli(), seed = 446) #setting seed for reproducibility
+```
+
+Plot trace and density:
+
+```{r}
+plot(fit1)
+```
+
+posterior predictive check:
+
+```{r}
+pp_check(fit1)
+```
+
+
+summarizing the results:
+
+```{r}
+summary(fit1)
+```
+
+Check $R^2$
+
+```{r}
+bayes_R2(fit1)
+```
 
